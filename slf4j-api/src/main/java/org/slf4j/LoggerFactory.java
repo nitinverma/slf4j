@@ -87,6 +87,23 @@ public final class LoggerFactory {
     static final String DETECT_LOGGER_NAME_MISMATCH_PROPERTY = "slf4j.detectLoggerNameMismatch";
     static boolean DETECT_LOGGER_NAME_MISMATCH = Boolean.getBoolean(DETECT_LOGGER_NAME_MISMATCH_PROPERTY);
 
+    // Support for detecting multiple bindings.
+    static final String DETECT_MULTIPULE_BINGINGS_PROPERTY = "slf4j.detectMultipleBindings";
+
+    // Preserve default behaviour
+    static boolean DETECT_MULTIPULE_BINGINGS = true;
+
+    static {
+        final String stringValue = System.getProperty(DETECT_MULTIPULE_BINGINGS_PROPERTY);
+        if (stringValue != null) {
+            try {
+                DETECT_MULTIPULE_BINGINGS = Boolean.parseBoolean(stringValue);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     /**
      * It is LoggerFactory's responsibility to track version changes and manage
      * the compatibility list.
@@ -114,6 +131,7 @@ public final class LoggerFactory {
     static void reset() {
         INITIALIZATION_STATE = UNINITIALIZED;
         TEMP_FACTORY = new SubstituteLoggerFactory();
+        DETECT_MULTIPULE_BINGINGS = true;
     }
 
     private final static void performInitialization() {
@@ -135,13 +153,18 @@ public final class LoggerFactory {
 
     private final static void bind() {
         try {
-            Set<URL> staticLoggerBinderPathSet = findPossibleStaticLoggerBinderPathSet();
-            reportMultipleBindingAmbiguity(staticLoggerBinderPathSet);
+            Set<URL> staticLoggerBinderPathSet = null;
+            if (DETECT_MULTIPULE_BINGINGS) {
+                staticLoggerBinderPathSet = findPossibleStaticLoggerBinderPathSet();
+                reportMultipleBindingAmbiguity(staticLoggerBinderPathSet);
+            }
             // the next line does the binding
             StaticLoggerBinder.getSingleton();
             INITIALIZATION_STATE = SUCCESSFUL_INITIALIZATION;
-            reportActualBinding(staticLoggerBinderPathSet);
-            fixSubstitutedLoggers();
+            if (staticLoggerBinderPathSet != null) {
+                reportActualBinding(staticLoggerBinderPathSet);
+                fixSubstitutedLoggers();
+            }
         } catch (NoClassDefFoundError ncde) {
             String msg = ncde.getMessage();
             if (messageContainsOrgSlf4jImplStaticLoggerBinder(msg)) {
