@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -88,16 +87,16 @@ public final class LoggerFactory {
     static boolean DETECT_LOGGER_NAME_MISMATCH = Boolean.getBoolean(DETECT_LOGGER_NAME_MISMATCH_PROPERTY);
 
     // Support for detecting multiple bindings.
-    static final String DETECT_MULTIPULE_BINGINGS_PROPERTY = "slf4j.detectMultipleBindings";
+    static final String DETECT_MULTIPLE_BINGINGS_PROPERTY = "slf4j.detectMultipleBindings";
 
     // Preserve default behaviour
-    static boolean DETECT_MULTIPULE_BINGINGS = true;
+    static boolean DETECT_MULTIPLE_BINGINGS = true;
 
     static {
-        final String stringValue = System.getProperty(DETECT_MULTIPULE_BINGINGS_PROPERTY);
+        final String stringValue = System.getProperty(DETECT_MULTIPLE_BINGINGS_PROPERTY);
         if (stringValue != null) {
             try {
-                DETECT_MULTIPULE_BINGINGS = Boolean.parseBoolean(stringValue);
+                DETECT_MULTIPLE_BINGINGS = Boolean.parseBoolean(stringValue);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -131,7 +130,7 @@ public final class LoggerFactory {
     static void reset() {
         INITIALIZATION_STATE = UNINITIALIZED;
         TEMP_FACTORY = new SubstituteLoggerFactory();
-        DETECT_MULTIPULE_BINGINGS = true;
+        DETECT_MULTIPLE_BINGINGS = true;
     }
 
     private final static void performInitialization() {
@@ -154,7 +153,7 @@ public final class LoggerFactory {
     private final static void bind() {
         try {
             Set<URL> staticLoggerBinderPathSet = null;
-            if (DETECT_MULTIPULE_BINGINGS) {
+            if (DETECT_MULTIPLE_BINGINGS) {
                 staticLoggerBinderPathSet = findPossibleStaticLoggerBinderPathSet();
                 reportMultipleBindingAmbiguity(staticLoggerBinderPathSet);
             }

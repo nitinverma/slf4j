@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
  */
 public class DetectMultipleBindingsTest {
     private static final String MULTIPLE_BINDINGS_STRING = "Found binding in";
+    private static final String DETECT_MULTIPLE_BINGINGS_FIELD_NAME = "DETECT_MULTIPLE_BINGINGS";
 
     private final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     private final PrintStream oldErr = System.err;
@@ -86,31 +87,31 @@ public class DetectMultipleBindingsTest {
     private Object getLogger(final ClassLoader classLoader, final Class<?> clazz, final Boolean detectMultipleBindings) {
         try {
             if (detectMultipleBindings != null) {
-                System.setProperty(LoggerFactory.DETECT_MULTIPULE_BINGINGS_PROPERTY, Boolean.toString(detectMultipleBindings));
+                System.setProperty(LoggerFactory.DETECT_MULTIPLE_BINGINGS_PROPERTY, Boolean.toString(detectMultipleBindings));
             }
             final Class classLoggerFactory = classLoader.loadClass(LoggerFactory.class.getName());
             @SuppressWarnings("unchecked")
             final Method getLogger = classLoggerFactory.getMethod("getLogger", Class.class);
-            final Field field = classLoggerFactory.getDeclaredField("DETECT_MULTIPULE_BINGINGS");
+            final Field field = classLoggerFactory.getDeclaredField(DETECT_MULTIPLE_BINGINGS_FIELD_NAME);
             field.setAccessible(true);
             final Boolean flag = (Boolean) field.get(classLoggerFactory);
             if (detectMultipleBindings != null) {
-                assertTrue("DETECT_MULTIPULE_BINGINGS should be <" + detectMultipleBindings + "> but found <" + flag + ">", flag.equals(detectMultipleBindings));
+                assertTrue(DETECT_MULTIPLE_BINGINGS_FIELD_NAME + " should be <" + detectMultipleBindings + "> but found <" + flag + ">", flag.equals(detectMultipleBindings));
             } else {
-                assertTrue("Unset: DETECT_MULTIPULE_BINGINGS should be <" + true + "> but found <" + flag + ">", flag);
+                assertTrue("Unset: " + DETECT_MULTIPLE_BINGINGS_FIELD_NAME + " should be <" + true + "> but found <" + flag + ">", flag);
             }
             return getLogger.invoke(classLoggerFactory, clazz);
         } catch (final Throwable th) {
             th.printStackTrace();
         } finally {
-            if (System.getProperty(LoggerFactory.DETECT_MULTIPULE_BINGINGS_PROPERTY) != null) {
-                System.setProperty(LoggerFactory.DETECT_MULTIPULE_BINGINGS_PROPERTY, Boolean.TRUE.toString());
+            if (System.getProperty(LoggerFactory.DETECT_MULTIPLE_BINGINGS_PROPERTY) != null) {
+                System.setProperty(LoggerFactory.DETECT_MULTIPLE_BINGINGS_PROPERTY, Boolean.TRUE.toString());
             }
         }
         return null;
     }
 
-    private String getNameLogger(final Object logger) {
+    private String getLoggerName(final Object logger) {
         try {
             final Method getName = logger.getClass().getMethod("getName");
             return (String) getName.invoke(logger);
@@ -126,28 +127,37 @@ public class DetectMultipleBindingsTest {
     }
 
 
+    /**
+     * Test behaviour while system property is not set.
+     */
     @Test
     public void testWithoutPropertySet() {
-        getLogger(new MyClassLoader(), String.class, null);
-        assertMultipuleBindingsDetected(true);
+        assertEquals("java.lang.Class", getLoggerName(getLogger(new MyClassLoader(), Class.class, null)));
+        assertDetectMultipleBindings(true);
     }
 
+    /**
+     * Test detectMultipleBindings turned off.
+     */
     @Test
     public void testWithPropertyFalse() {
-        assertEquals("java.lang.String", getNameLogger(getLogger(new MyClassLoader(), String.class, false)));
-        assertMultipuleBindingsDetected(false);
+        assertEquals("java.lang.String", getLoggerName(getLogger(new MyClassLoader(), String.class, false)));
+        assertDetectMultipleBindings(false);
     }
 
+    /**
+     * Test detectMultipleBindings turned on.
+     */
     @Test
     public void testWithPropertyTrue() {
-        getLogger(new MyClassLoader(), String.class, true);
-        assertMultipuleBindingsDetected(true);
+        assertEquals("org.slf4j.impl.StaticLoggerBinder", getLoggerName(getLogger(new MyClassLoader(), StaticLoggerBinder.class, true)));
+        assertDetectMultipleBindings(true);
     }
 
 
-    private void assertMultipuleBindingsDetected(boolean mismatchDetected) {
+    private void assertDetectMultipleBindings(boolean expected) {
         final String streamData = String.valueOf(byteArrayOutputStream);
-        assertEquals(mismatchDetected, streamData.contains(MULTIPLE_BINDINGS_STRING));
+        assertEquals(expected, streamData.contains(MULTIPLE_BINDINGS_STRING));
     }
 }
 
